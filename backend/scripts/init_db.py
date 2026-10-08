@@ -1,0 +1,7 @@
+"""Create the local SQLite schema: `uv run python -m scripts.init_db`."""
+
+from app.core.database import init_db
+
+if __name__ == "__main__":
+    init_db()
+    print("Database initialized.")

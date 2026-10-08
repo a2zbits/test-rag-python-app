@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     app_name: str = "Company Knowledge Assistant"
     environment: str = "development"
     log_level: str = "INFO"
+    database_url: str = "sqlite:///./app.db"
 
 
 @lru_cache
