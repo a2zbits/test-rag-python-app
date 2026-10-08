@@ -1,2 +1,13 @@
-.DS_STore
+# OS
+.DS_Store
+
+# Secrets
 .env
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
