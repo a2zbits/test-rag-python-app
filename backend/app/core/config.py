@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
     database_url: str = "sqlite:///./app.db"
+    # Implementation defaults (characters), not final project decisions.
+    chunk_size: int = 1000
+    chunk_overlap: int = 150
 
 
 @lru_cache
