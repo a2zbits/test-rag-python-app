@@ -14,6 +14,17 @@ class Settings(BaseSettings):
     chunk_size: int = 1000
     chunk_overlap: int = 150
 
+    openai_api_key: str | None = None
+    openai_embedding_model: str = "text-embedding-3-small"
+
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_collection: str = "company_documents"
+
+    # Implementation defaults, not final project decisions. The threshold is
+    # disabled by default because suitable cosine values are not yet measured.
+    retrieval_top_k: int = 5
+    retrieval_score_threshold: float | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:
