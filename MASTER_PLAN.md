@@ -1,9 +1,9 @@
 # MASTER_PLAN.md
 # Test RAG Python App — Canonical Project Plan
 
-> **Status:** Planning approved; implementation not yet started  
+> **Status:** Implementation in progress; Milestones 0–4 completed  
 > **Purpose:** Canonical source of truth for the Test RAG Python App project  
-> **Last updated:** 2026-10-08  
+> **Last updated:** 2026-10-11  
 > **Project name:** Test RAG Python App  
 > **Demo application concept:** Company Knowledge Assistant
 
@@ -292,9 +292,7 @@ The approved OpenAI model is **GPT-5.4 mini**.
 ## Embeddings
 
 - Embeddings are required.
-- The exact embedding provider/model has not yet been finalized.
-
-The approved embedding model is **text-embedding-3-small**.
+- The approved embedding provider/model is **OpenAI `text-embedding-3-small`**.
 
 ## Document parsing
 
@@ -320,6 +318,8 @@ Redux is not planned initially.
 
 - **Docker**
 - Docker Compose is expected for the final application, but Docker is deliberately not part of the initial implementation phase.
+- During development, Qdrant runs in a separate Docker container.
+- On the user's Intel MacBook Pro/macOS Ventura development machine, the working Docker runtime is **Colima** rather than Docker Desktop or Lima.
 
 ## Version control
 
@@ -866,6 +866,8 @@ The application should store embedded document chunks in Qdrant and retrieve sem
 
 The approved development deployment is **Qdrant in a separate Docker container**, independent from the Python application containerization. This keeps the vector database isolated and allows the application to connect to Qdrant over its service endpoint.
 
+The verified local development setup uses **Colima** as the Docker runtime on the user's Intel MacBook Pro running macOS Ventura. The active Docker context is `colima`; Docker Desktop is not used, and the previously configured `lima-docker` context is not the working runtime. The current development Qdrant image is pinned to `qdrant/qdrant:v1.19.2`.
+
 Qdrant Cloud or another production deployment model may be considered later if needed, but it requires explicit approval if it materially changes architecture or cost.
 
 ---
@@ -887,6 +889,20 @@ A `.env.example` file is planned.
 # 32. Docker Strategy
 
 Docker is planned for application containerization later, but it should **not** be the first application implementation step. The approved exception is that Qdrant may run in its own separate Docker container during development.
+
+### Verified local Docker development environment
+
+The user's working Docker environment is: **Docker CLI 29.2.1 + Colima + Docker context `colima`** on an Intel MacBook Pro running macOS Ventura via OCLP. Colima uses macOS Virtualization.Framework with x86_64 architecture and virtiofs. Docker Desktop is not used. Lima is not the active runtime.
+
+Typical startup/check sequence:
+
+```text
+colima start
+docker context use colima
+docker info
+```
+
+The Qdrant development container runs separately from the application containerization effort. Its current verified image is `qdrant/qdrant:v1.19.2`, exposed on port 6333 with persistent development storage under `./qdrant_storage/`. Qdrant 1.19.2 has been successfully started and accessed by the Python application through this setup.
 
 Preferred sequence:
 
@@ -1023,7 +1039,7 @@ Implement:
 
 ## Milestone 2 — Database
 
-Implement the relational models, potentially including:
+Implemented the initial relational models:
 
 - Document
 - Chunk
@@ -1031,37 +1047,64 @@ Implement the relational models, potentially including:
 - Message
 - QueryLog
 
-Exact schemas are still open.
+Initial SQLAlchemy schemas are implemented with UUID-based core identifiers, timestamps, relationships, constraints, and SQLite foreign-key behavior. Future schema evolution remains possible if later milestones require it.
 
 ## Milestone 3 — Document ingestion
 
-Implement:
+Implemented:
 
 ```text
 PDF
  ↓
-Text extraction
+Page-by-page text extraction
  ↓
 Cleaning
  ↓
-Chunking
+Deterministic page-bounded chunking
  ↓
 Metadata
+ ↓
+SQLite persistence
 ```
 
-## Milestone 4 — Embeddings + Qdrant
+Implementation uses PyMuPDF, configurable character-based chunking, 1-based page numbers, optional PDF outline/section metadata, and document status transitions including failure handling.
 
-Implement:
+## Milestone 4 — Embeddings + Qdrant — COMPLETED
+
+Implemented:
 
 ```text
 Chunk
  ↓
-Embedding
+OpenAI embedding abstraction
  ↓
 Qdrant
+ ↓
+Semantic retrieval
 ```
 
-and semantic retrieval.
+Implemented components include:
+
+- OpenAI `text-embedding-3-small` embedding service
+- batched embedding requests with order preservation
+- Qdrant vector-store abstraction
+- collection creation and vector-size validation
+- UUID chunk IDs used as Qdrant point IDs
+- citation metadata stored in Qdrant payloads
+- indexing service
+- retrieval service with configurable Top-K and optional score threshold
+- Qdrant connectivity check
+- local Qdrant startup documentation/script
+- fake/in-memory tests for application-level behavior
+
+Verification completed:
+
+- 48 automated tests pass
+- real Qdrant 1.19.2 container verified through Colima
+- real collection creation, vector upsert, search, payload retrieval, and score-threshold behavior verified against Qdrant
+- no real OpenAI API call was made during this milestone verification
+
+The exact final retrieval Top-K and similarity threshold remain implementation defaults rather than permanent project decisions.
 
 ## Milestone 5 — RAG engine
 
@@ -1468,6 +1511,8 @@ The following decisions are currently considered **approved/confirmed**:
 24. The embedding model will be **text-embedding-3-small**.
 25. The core relational entities `documents`, `chunks`, `conversations`, and `messages` will use **UUID primary keys**; related foreign keys will use UUIDs.
 26. Qdrant will run in a **separate Docker container** during development, independent from application containerization.
+27. The verified local Docker runtime for development is **Colima** with Docker context `colima`; Docker Desktop and the inactive `lima-docker` context are not used.
+28. The development Qdrant container is currently pinned to **`qdrant/qdrant:v1.19.2`**.
 
 ---
 
@@ -1518,54 +1563,163 @@ These should be resolved deliberately rather than assumed.
 
 ## Overall
 
-**Planning stage. Implementation has not yet started.**
+**Implementation is in progress. Milestones 0, 1, 2, 3, and 4 are completed and committed. Milestone 5 is the next implementation milestone.**
 
-## Completed
+The canonical plan remains the source of truth for approved architecture and open decisions. Actual implementation status below reflects the reviewed repository state as of 2026-10-11.
 
-- Project concept selected.
-- Company Knowledge Assistant selected as the demo domain.
-- ReactJS added as a confirmed frontend requirement.
-- Bootstrap retained as a frontend requirement.
-- Qdrant selected as vector database.
-- OpenAI APIs selected for LLM integration.
-- High-level architecture defined.
-- RAG pipeline defined.
-- Admin/control-panel direction defined.
-- Portfolio/GitHub goal defined.
-- Token-efficient Claude Code workflow defined.
-- Development milestones defined.
-- V1 exclusions defined.
-- MCP intentionally deferred from V1.
-- uv selected as package/environment manager.
-- GPT-5.4 mini selected as the OpenAI LLM.
-- text-embedding-3-small selected as the embedding model.
-- UUID-based relational identifiers approved for core RAG entities.
-- Separate Docker-container deployment approved for Qdrant during development.
+## Completed Milestones
 
-## Not yet implemented
+### Milestone 0 — Project specification — COMPLETED
 
-- Repository
-- Python environment
-- Backend
-- Database
-- Qdrant
-- Document ingestion
-- Embeddings
-- RAG engine
-- OpenAI integration
-- FastAPI endpoints
+Created and reviewed the initial project specification artifacts, including:
+
+- `CLAUDE.md`
+- `README.md`
+- `docs/architecture.md`
+- `docs/rag-pipeline.md`
+
+The canonical `MASTER_PLAN.md` was preserved as the approved source of truth.
+
+### Milestone 1 — Backend foundation — COMPLETED
+
+Implemented:
+
+- Python backend project managed with `uv`
+- FastAPI application
+- environment configuration with Pydantic Settings
+- logging foundation
+- `/api/health` endpoint
+- pytest/httpx testing foundation
+- `.env.example` and project `.gitignore` configuration
+
+Verification: health endpoint and backend tests passed; the milestone was committed.
+
+### Milestone 2 — Database — COMPLETED
+
+Implemented:
+
+- SQLAlchemy database foundation
+- SQLite initial database
+- UUID/timestamp mixins
+- `Document` model
+- `Chunk` model
+- `Conversation` model
+- `Message` model
+- `QueryLog` model
+- relationships, cascading behavior, and relevant constraints
+- database initialization script
+- database tests
+
+Verification: database and health tests passed; the milestone was committed. Runtime SQLite database files remain ignored by Git.
+
+### Milestone 3 — Document ingestion — COMPLETED
+
+Implemented:
+
+- PDF parsing with PyMuPDF
+- page-by-page extraction
+- text cleaning
+- hyphenated line handling
+- whitespace/paragraph normalization
+- deterministic character-based chunking
+- configurable chunk size and overlap
+- page-bounded chunks
+- page and optional section metadata
+- document status transitions and failure handling
+- persistence of documents and chunks
+
+Verification: 32 tests passed at milestone completion; the milestone was committed.
+
+### Milestone 4 — Embeddings + Qdrant — COMPLETED
+
+Implemented:
+
+- OpenAI `text-embedding-3-small` embedding service
+- batched embedding requests and order preservation
+- Qdrant vector-store abstraction
+- cosine similarity collection configuration
+- collection/vector-size validation
+- UUID chunk IDs mapped directly to Qdrant point IDs
+- citation payload fields stored with vectors
+- indexing service
+- retrieval service
+- configurable Top-K and optional score threshold
+- Qdrant connectivity helper
+- local Qdrant Docker startup script and documentation
+- fake/in-memory test infrastructure
+
+Verification:
+
+- 48 automated tests pass
+- real Qdrant `v1.19.2` container successfully runs under Colima
+- real application VectorStore successfully connected to Qdrant
+- real collection creation, vector upsert, semantic search, payload retrieval, and score-threshold behavior verified
+- temporary smoke-test collection was cleaned up
+- no real OpenAI API call was made during milestone verification
+- Qdrant compatibility warning was identified as belonging to the intentionally unreachable test and addressed only in that test with `check_compatibility=False`
+- remaining third-party deprecation warnings were left unchanged
+- Qdrant's Colima/virtiofs filesystem warning was reviewed and retained as a known development-environment limitation; no architecture change was made
+
+Commit:
+
+```text
+19f7f43 feat: add embeddings and Qdrant vector layer
+```
+
+The Git working tree is clean and the commit is present on `origin/main`.
+
+## Current Development Environment
+
+The verified local Docker setup is:
+
+- Docker CLI 29.2.1
+- Colima as the working Docker runtime
+- Docker context `colima`
+- macOS Virtualization.Framework
+- x86_64 architecture
+- virtiofs mount type
+- Docker Desktop not used
+- Lima not used as the active runtime
+
+Qdrant is intentionally a separate Docker container during development. The Python application is not yet containerized.
+
+## Not Yet Implemented
+
+- RAG engine / answer generation
+- OpenAI GPT-5.4 mini answer generation
+- real end-to-end OpenAI embedding/API integration
+- chat API
+- conversation API/UX beyond the database foundation
 - React application
 - Bootstrap UI
-- Authentication
-- Admin panel
-- Evaluation system
-- Docker
+- authentication
+- chat UI and streaming
+- admin panel
+- retrieval playground UI
+- evaluation system
+- application Dockerization / final Docker Compose topology
 - CI
-- Deployment
-- Final README
-- Screenshots
+- deployment
+- final portfolio README/content polish
+- screenshots and final demo assets
 
----
+## Intentionally Deferred
+
+The following remain open and should not be silently finalized:
+
+- exact supported document formats beyond PDF
+- final chunk size and overlap values
+- final retrieval Top-K
+- final similarity threshold
+- exact authentication implementation
+- exact streaming mechanism
+- production relational database
+- application Docker Compose topology
+- hosting/deployment provider
+- evaluation methodology
+- exact React architecture/visual design
+- API route naming
+- final admin metrics
 
 # 48. Future Change-Control Procedure
 
@@ -1614,7 +1768,7 @@ The finished application should be:
 
 # 50. Canonical Status
 
-This document represents the **latest approved project plan as of 2026-10-07**.
+This document represents the **latest approved project plan as of 2026-10-11**. Milestones 0–4 have been implemented and reviewed; the next planned milestone is Milestone 5 — RAG engine.
 
 Future implementation work should remain aligned with this document unless the user explicitly approves a change.
 
